@@ -8,10 +8,9 @@
         const jsonData = JSON.parse(data);
         const query = encodeURIComponent(jsonData.query);
         
-        // Using Google News RSS as it provides a reliable, parseable structure.
-        // We use corsproxy.io to bypass browser CORS while testing locally.
+        // Using Google News RSS via rss2json API as a reliable proxy that doesn't get blocked
         const targetUrl = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+        const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(targetUrl)}`;
         
         const response = await fetch(proxyUrl);
         
@@ -19,30 +18,21 @@
           throw new Error(`HTTP error: ${response.status}`);
         }
         
-        const xmlText = await response.text();
-
-        // Parse the XML
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-        
-        const items = xmlDoc.querySelectorAll('item');
+        const jsonResponse = await response.json();
         const searchResults = [];
         
-        items.forEach(node => {
-          const title = node.querySelector('title')?.textContent || '';
-          const link = node.querySelector('link')?.textContent || '';
-          const pubDate = node.querySelector('pubDate')?.textContent || '';
-          const source = node.querySelector('source')?.textContent || '';
-          
-          if (title && link) {
-            searchResults.push({
-              title: title,
-              source: source,
-              published: pubDate,
-              link: link
-            });
-          }
-        });
+        if (jsonResponse.items) {
+          jsonResponse.items.forEach(item => {
+            if (item.title && item.link) {
+              searchResults.push({
+                title: item.title,
+                source: item.author || '',
+                published: item.pubDate || '',
+                link: item.link
+              });
+            }
+          });
+        }
 
         if (searchResults.length === 0) {
           return JSON.stringify({ result: "No results found." });
@@ -58,6 +48,13 @@
         });
       }
     };
+
+    // test by rendering news about japan to the console
+    (async () => {
+      const testData = JSON.stringify({ query: "japan" });
+      const result = await ai_edge_gallery_get_result(testData);
+      console.log(result);
+    })();
   </script>
 </body>
 </html>
