@@ -5,7 +5,8 @@
   <script>
     async function ai_edge_gallery_get_result(data) {
       try {
-        const jsonData = JSON.parse(data);
+        // const jsonData = JSON.parse(data);
+        const jsonData = typeof data === 'string' ? JSON.parse(data) : data;
         const query = encodeURIComponent(jsonData.query);
         
         // Using Google News RSS via rss2json API as a reliable proxy that doesn't get blocked
